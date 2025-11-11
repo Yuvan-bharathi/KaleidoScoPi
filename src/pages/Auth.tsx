@@ -8,6 +8,12 @@ import { Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { auth, db } from "@/integrations/firebase/client";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 import { toast } from "sonner";
 
 const Auth = () => {
@@ -19,16 +25,16 @@ const Auth = () => {
   const [signupPassword, setSignupPassword] = useState("");
   const [signupRole, setSignupRole] = useState("kid");
   const [loading, setLoading] = useState(false);
-  
+
   const navigate = useNavigate();
-  const { signIn, signUp, isAuthenticated } = useFirebaseAuth();
+  const { user } = useFirebaseAuth();
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
+    if (user) {
       navigate("/");
     }
-  }, [isAuthenticated, navigate]);
+  }, [user, navigate]);
 
   /**
    * Handle sign in form submission
@@ -38,20 +44,18 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await signIn(signinEmail, signinPassword);
-      
-      if (error) {
-        if (error.message.includes("invalid-credential") || error.message.includes("user-not-found")) {
-          toast.error("Invalid email or password");
-        } else {
-          toast.error(error.message);
-        }
+      await signInWithEmailAndPassword(auth, signinEmail, signinPassword);
+      toast.success("Welcome back!");
+      navigate("/");
+    } catch (error: any) {
+      if (
+        error.code === "auth/invalid-credential" ||
+        error.code === "auth/user-not-found"
+      ) {
+        toast.error("Invalid email or password");
       } else {
-        toast.success("Welcome back!");
-        navigate("/");
+        toast.error(error.message);
       }
-    } catch (error) {
-      toast.error("An error occurred during sign in");
     } finally {
       setLoading(false);
     }
@@ -78,26 +82,32 @@ const Auth = () => {
     }
 
     try {
-      const { error } = await signUp(signupEmail, signupPassword, {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        signupEmail,
+        signupPassword
+      );
+      const user = userCredential.user;
+
+      await setDoc(doc(db, "users", user.uid), {
         name: signupName,
         age: signupAge ? parseInt(signupAge) : undefined,
         role: signupRole,
+        email: user.email,
       });
-      
-      if (error) {
-        if (error.message.includes("already") || error.message.includes("email-already-in-use")) {
-          toast.error("This email is already registered. Please sign in instead.");
-        } else if (error.message.includes("password") || error.message.includes("weak-password")) {
-          toast.error("Password should be at least 6 characters");
-        } else {
-          toast.error(error.message);
-        }
+
+      toast.success("Account created! Welcome to KaleidoScoPi!");
+      navigate("/");
+    } catch (error: any) {
+      if (error.code === "auth/email-already-in-use") {
+        toast.error(
+          "This email is already registered. Please sign in instead."
+        );
+      } else if (error.code === "auth/weak-password") {
+        toast.error("Password should be at least 6 characters");
       } else {
-        toast.success("Account created! Welcome to KaleidoScoPi!");
-        navigate("/");
+        toast.error(error.message);
       }
-    } catch (error) {
-      toast.error("An error occurred during sign up");
     } finally {
       setLoading(false);
     }

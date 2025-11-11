@@ -1,173 +1,120 @@
-/**
- * Community Posts Hook for Lovable Cloud
- * Manages CRUD operations and real-time updates for community posts
- */
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
+import { db } from '@/integrations/firebase/client';
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  serverTimestamp,
+  increment,
+} from 'firebase/firestore';
+import { useFirebaseAuth } from './useFirebaseAuth';
+import { toast } from 'sonner';
 
 export interface CommunityPost {
   id: string;
-  user_id: string;
-  author_name: string;
-  author_role: string;
+  userId: string;
+  authorName: string;
+  authorRole: string;
   content: string;
   likes: number;
-  created_at: string;
-  updated_at: string;
+  createdAt: any;
+  updatedAt: any;
 }
 
 export const useCommunityPosts = () => {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user } = useFirebaseAuth();
 
-  /**
-   * Fetch all community posts from the database
-   */
-  const fetchPosts = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('community_posts')
-        .select('*')
-        .order('created_at', { ascending: false });
+  useEffect(() => {
+    const q = query(collection(db, 'community_posts'), orderBy('createdAt', 'desc'));
 
-      if (error) throw error;
-      setPosts(data || []);
-    } catch (error) {
-      console.error('Error fetching posts:', error);
-    } finally {
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const postsData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as CommunityPost[];
+      setPosts(postsData);
       setLoading(false);
-    }
-  };
+    });
 
-  /**
-   * Create a new community post
-   */
+    return unsubscribe;
+  }, []);
+
   const createPost = async (content: string, authorName: string, authorRole: string) => {
     if (!user) {
-      throw new Error('Must be authenticated to create a post');
+      toast.error('Must be authenticated to create a post');
+      return;
     }
 
     try {
-      const { data, error } = await supabase
-        .from('community_posts')
-        .insert([
-          {
-            user_id: user.id,
-            author_name: authorName,
-            author_role: authorRole,
-            content,
-          }
-        ])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return { data, error: null };
-    } catch (error: any) {
-      console.error('Error creating post:', error);
-      return { data: null, error };
+      await addDoc(collection(db, 'community_posts'), {
+        userId: user.uid,
+        authorName,
+        authorRole,
+        content,
+        likes: 0,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      toast.success('Post created!');
+    } catch (error) {
+      toast.error('Failed to create post');
     }
   };
 
-  /**
-   * Update an existing post
-   */
   const updatePost = async (postId: string, content: string) => {
     if (!user) {
-      throw new Error('Must be authenticated to update a post');
+      toast.error('Must be authenticated to update a post');
+      return;
     }
 
     try {
-      const { data, error } = await supabase
-        .from('community_posts')
-        .update({ content })
-        .eq('id', postId)
-        .eq('user_id', user.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return { data, error: null };
-    } catch (error: any) {
-      console.error('Error updating post:', error);
-      return { data: null, error };
+      const postRef = doc(db, 'community_posts', postId);
+      await updateDoc(postRef, {
+        content,
+        updatedAt: serverTimestamp(),
+      });
+      toast.success('Post updated');
+    } catch (error) {
+      toast.error('Failed to update post');
     }
   };
 
-  /**
-   * Delete a post
-   */
   const deletePost = async (postId: string) => {
     if (!user) {
-      throw new Error('Must be authenticated to delete a post');
+      toast.error('Must be authenticated to delete a post');
+      return;
     }
 
     try {
-      const { error } = await supabase
-        .from('community_posts')
-        .delete()
-        .eq('id', postId)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-      return { error: null };
-    } catch (error: any) {
-      console.error('Error deleting post:', error);
-      return { error };
-    }
-  };
-
-  /**
-   * Increment likes for a post
-   */
-  const likePost = async (postId: string) => {
-    try {
-      // Get current post
-      const currentPost = posts.find(p => p.id === postId);
-      if (!currentPost) return;
-
-      // Optimistically update likes
-      const { error } = await supabase
-        .from('community_posts')
-        .update({ likes: currentPost.likes + 1 })
-        .eq('id', postId);
-
-      if (error) {
-        console.error('Error liking post:', error);
-      }
+      await deleteDoc(doc(db, 'community_posts', postId));
+      toast.success('Post deleted');
     } catch (error) {
-      console.error('Error liking post:', error);
+      toast.error('Failed to delete post');
     }
   };
 
-  // Set up real-time subscription
-  useEffect(() => {
-    fetchPosts();
+  const likePost = async (postId: string) => {
+    if (!user) {
+      toast.error('Please sign in to like posts');
+      return;
+    }
 
-    // Subscribe to real-time changes
-    const channel = supabase
-      .channel('community_posts_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'community_posts'
-        },
-        (payload) => {
-          // Refetch posts when changes occur
-          fetchPosts();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+    try {
+      const postRef = doc(db, 'community_posts', postId);
+      await updateDoc(postRef, {
+        likes: increment(1),
+      });
+    } catch (error) {
+      toast.error('Failed to like post');
+    }
+  };
 
   return {
     posts,
@@ -176,6 +123,5 @@ export const useCommunityPosts = () => {
     updatePost,
     deletePost,
     likePost,
-    refetch: fetchPosts,
   };
 };
