@@ -1,0 +1,181 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+/* React PDF styles - prevent layout issues */
+.react-pdf__Document {
+  display: flex;
+  justify-content: center;
+}
+
+.react-pdf__Page {
+  max-width: 100%;
+}
+
+.react-pdf__Page__canvas {
+  max-width: 100%;
+  height: auto !important;
+}
+
+/* Page Flip Styles - Custom styling for page-flip library */
+.page-flip-container {
+  position: relative;
+  margin: 0 auto;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.page-flip-container canvas {
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Enhance page flip shadow for depth */
+.stf__wrapper {
+  position: relative;
+  overflow: visible !important;
+}
+
+.stf__block {
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+  background: white;
+}
+
+/* Mobile touch optimization */
+@media (max-width: 768px) {
+  .page-flip-container {
+    width: 100%;
+    touch-action: pan-y;
+  }
+  
+  .stf__block {
+    box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Smooth animations for page transitions */
+.stf__wrapper .stf__item {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@layer base {
+  :root {
+    /* Warm, vibrant Indic-inspired palette */
+    --background: 35 100% 98%;
+    --foreground: 25 35% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 25 35% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 25 35% 20%;
+
+    /* Saffron/Orange - Primary brand color */
+    --primary: 25 95% 53%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 30 100% 65%;
+    
+    /* Sky Blue - Secondary accent */
+    --secondary: 200 85% 60%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Warm cream/beige */
+    --muted: 40 40% 94%;
+    --muted-foreground: 25 25% 45%;
+
+    /* Golden yellow accent */
+    --accent: 45 95% 60%;
+    --accent-foreground: 25 35% 20%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 30 30% 88%;
+    --input: 30 30% 88%;
+    --ring: 25 95% 53%;
+
+    --radius: 1rem;
+    
+    /* Custom design tokens */
+    --gradient-warm: linear-gradient(135deg, hsl(25 95% 53%), hsl(30 100% 65%));
+    --gradient-sky: linear-gradient(135deg, hsl(200 85% 60%), hsl(210 90% 70%));
+    --gradient-hero: linear-gradient(135deg, hsl(25 95% 53%), hsl(45 95% 60%));
+    --shadow-soft: 0 4px 20px hsl(25 95% 53% / 0.15);
+    --shadow-card: 0 2px 12px hsl(0 0% 0% / 0.08);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 25 20% 12%;
+    --foreground: 35 40% 95%;
+
+    --card: 25 18% 16%;
+    --card-foreground: 35 40% 95%;
+
+    --popover: 25 18% 16%;
+    --popover-foreground: 35 40% 95%;
+
+    --primary: 25 95% 53%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 30 100% 65%;
+
+    --secondary: 200 85% 60%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 25 15% 22%;
+    --muted-foreground: 35 20% 65%;
+
+    --accent: 45 95% 60%;
+    --accent-foreground: 25 35% 20%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 35 40% 95%;
+
+    --border: 25 15% 25%;
+    --input: 25 15% 25%;
+    --ring: 25 95% 53%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}

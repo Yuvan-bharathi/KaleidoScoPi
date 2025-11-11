@@ -1,0 +1,25 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Magazine images - public read, authenticated write
+    match /magazine-images/{allPaths=**} {
+      allow read: if true; // Public access
+      allow write: if isAuthenticated(); // Only authenticated users can upload
+      allow delete: if isAuthenticated(); // Only authenticated users can delete
+    }
+    
+    // User uploads - authenticated users only
+    match /user-uploads/{userId}/{allPaths=**} {
+      allow read: if true; // Public access
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+  }
+}
